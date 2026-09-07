@@ -13,6 +13,11 @@ A specialized AI-powered medical assistant built on Cloudflare's Agent platform,
 - ⚡️ Real-time streaming responses
 - 🔄 Conversation history tracking
 
+A lab-panel question renders as a table (marker, value, unit, range, flag)
+plus next-step prose and follow-up chips. Questions with no lab values stay
+plain chat. While a reply is in flight the UI shows a waiting row; if the
+model call fails it shows an error with retry, not a blank thread.
+
 ## Configuration
 
 | Variable                  | Required | Default                                              | Notes                                                                        |
