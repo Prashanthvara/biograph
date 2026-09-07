@@ -10,6 +10,7 @@ import {
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { processToolCalls } from "./utils";
 import { tools, executions } from "./tools";
+import { resolveReasoningEffort, TEMPERATURE, TOP_P } from "./config";
 import { AsyncLocalStorage } from "node:async_hooks";
 // we use ALS to expose the agent context to the tools
 export const agentContext = new AsyncLocalStorage<Chat>();
@@ -65,6 +66,18 @@ export class Chat extends AIChatAgent<Env> {
             // same budget as the answer - too small a cap returns content: null
             // with finish_reason "length". Leave ample room.
             maxTokens: 8000,
+            temperature: TEMPERATURE,
+            topP: TOP_P,
+            // "bedrock" must match createOpenAICompatible({ name: "bedrock" });
+            // @ai-sdk/openai-compatible spreads this object straight into the
+            // Chat Completions request body. A wrong key is silently dropped.
+            providerOptions: {
+              bedrock: {
+                reasoning_effort: resolveReasoningEffort(
+                  this.env.OPENAI_REASONING_EFFORT
+                ),
+              },
+            },
             system: `You are an medical assistant that engages in extremely thorough reasoning. 
 
 ## Core Principles
