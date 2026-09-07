@@ -6,6 +6,7 @@
   "private": true,
   "scripts": {
     "start": "vite dev",
+    "smoke": "node scripts/smoke.mjs",
     "deploy": "vite build && wrangler deploy",
     "test": "vitest",
     "types": "wrangler types",
