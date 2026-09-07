@@ -142,3 +142,6 @@ dist
 .wrangler
 .dev.vars
 
+# Internal planning docs and local agent config - not published
+docs/superpowers/
+.claude/

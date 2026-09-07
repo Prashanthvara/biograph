@@ -2,23 +2,14 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useAgent } from "agents/react";
 import { useAgentChat } from "agents/ai-react";
 import type { Message } from "@ai-sdk/react";
-import { APPROVAL } from "./shared";
 // import type { tools } from "./tools";
 import { Button } from "./components/ui/button";
 import { Card } from "./components/ui/card";
-import { Input } from "./components/ui/input";
 import { Textarea } from "./components/ui/textarea";
 import { Avatar, AvatarFallback } from "./components/ui/avatar";
-import { Switch } from "./components/ui/switch";
-import { Send, Bot, Trash2, Bug, Copy, Check } from "lucide-react";
-
-// List of tools that require human confirmation
-// const toolsRequiringConfirmation: (keyof typeof tools)[] = [
-//   "getWeatherInformation",
-// ];
+import { Send, Trash2, Copy, Check } from "lucide-react";
 
 export default function Chat() {
-  const [showDebug, setShowDebug] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -37,9 +28,9 @@ export default function Chat() {
       timeoutId = window.setTimeout(handleResize, 250);
     };
 
-    window.addEventListener('resize', debouncedResize);
+    window.addEventListener("resize", debouncedResize);
     return () => {
-      window.removeEventListener('resize', debouncedResize);
+      window.removeEventListener("resize", debouncedResize);
       clearTimeout(timeoutId);
     };
   }, []);
@@ -53,11 +44,11 @@ export default function Chat() {
     // Use RAF for smoother scrolling
     requestAnimationFrame(() => {
       if (messagesEndRef.current) {
-        const behavior = isMobile ? 'auto' : 'smooth';
+        const behavior = isMobile ? "auto" : "smooth";
         try {
-          messagesEndRef.current.scrollIntoView({ 
+          messagesEndRef.current.scrollIntoView({
             behavior,
-            block: 'end',
+            block: "end",
           });
         } catch (error) {
           // Fallback for browsers that don't support smooth scrolling
@@ -112,17 +103,6 @@ export default function Chat() {
     }
   }, [agentMessages, scrollToBottom]);
 
-  const pendingToolCallConfirmation = agentMessages.some((m: Message) =>
-    m.parts?.some(
-      (part) =>
-        part.type === "tool-invocation" &&
-        part.toolInvocation.state === "call" //&&
-        // toolsRequiringConfirmation.includes(
-        //   part.toolInvocation.toolName as keyof typeof tools
-        // )
-    )
-  );
-
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   };
@@ -133,7 +113,7 @@ export default function Chat() {
       setCopiedId(messageId);
       setTimeout(() => setCopiedId(null), 2000);
     } catch (err) {
-      console.error('Failed to copy text: ', err);
+      console.error("Failed to copy text: ", err);
     }
   };
 
@@ -143,21 +123,31 @@ export default function Chat() {
         <div className="shrink-0 px-4 py-3 sm:py-4 border-b border-border flex items-center gap-3 bg-background z-10 safe-top">
           <div className="flex items-center justify-center h-8 w-8 sm:h-10 sm:w-10">
             <svg
-              width="28px"
-              height="28px"
+              width="28"
+              height="28"
+              viewBox="0 0 32 32"
+              role="img"
+              aria-label="Biograph Copilot"
               className="text-[#F48120]"
-              data-icon="agents"
             >
               <title>Biograph Copilot</title>
-              <symbol id="ai:local:agents" viewBox="0 0 80 79">
-                <image
-                  href="https://s7-recruiting.cdn.greenhouse.io/external_greenhouse_job_boards/logos/400/213/800/original/Biograph_-_Black_-_Icon.png?1710277849"
-                  width="80"
-                  height="79"
-                  preserveAspectRatio="xMidYMid meet"
-                />
-              </symbol>
-              <use href="#ai:local:agents" />
+              <rect
+                x="1"
+                y="1"
+                width="30"
+                height="30"
+                rx="8"
+                fill="currentColor"
+                opacity="0.12"
+              />
+              <path
+                d="M4 16h5l2.5-6 4 12 3-9 2.5 3H28"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
             </svg>
           </div>
 
@@ -175,6 +165,14 @@ export default function Chat() {
           </Button>
         </div>
 
+        <div className="shrink-0 px-4 py-2 border-b border-border bg-secondary/20">
+          <p className="text-[11px] leading-snug text-muted-foreground">
+            This is an AI assistant, not a medical professional. Information
+            here is for general education only and is not a diagnosis. Always
+            consult a qualified clinician before acting on it.
+          </p>
+        </div>
+
         {/* Messages */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-20 max-h-[calc(100dvh-8rem)] sm:max-h-[calc(100dvh-10rem)]">
           {agentMessages.length === 0 && (
@@ -185,7 +183,9 @@ export default function Chat() {
                     Welcome to Biograph Copilot
                   </h3>
                   <p className="text-muted-foreground text-sm">
-                    Start a conversation with your copilot by providing patient information to get structured output with personalized recommendations.
+                    Start a conversation with your copilot by providing patient
+                    information to get structured output with personalized
+                    recommendations.
                   </p>
                 </div>
               </Card>
@@ -196,15 +196,9 @@ export default function Chat() {
             const isUser = m.role === "user";
             const showAvatar =
               index === 0 || agentMessages[index - 1]?.role !== m.role;
-            const showRole = showAvatar && !isUser;
 
             return (
               <div key={m.id}>
-                {showDebug && (
-                  <pre className="text-xs text-muted-foreground overflow-scroll">
-                    {JSON.stringify(m, null, 2)}
-                  </pre>
-                )}
                 <div
                   className={`flex ${isUser ? "justify-end" : "justify-start"}`}
                 >
@@ -228,7 +222,7 @@ export default function Chat() {
                         {m.parts?.map((part, i) => {
                           if (part.type === "text") {
                             return (
-                              <div key={i}>
+                              <div key={`${m.id}-part-${i}`}>
                                 <Card
                                   className={`p-3 rounded-md ${
                                     isUser
@@ -268,7 +262,15 @@ export default function Chat() {
                                     variant="ghost"
                                     size="icon"
                                     className="h-4 w-4 p-0"
-                                    onClick={() => handleCopy(part.text.replace(/^scheduled message: /, ""), m.id)}
+                                    onClick={() =>
+                                      handleCopy(
+                                        part.text.replace(
+                                          /^scheduled message: /,
+                                          ""
+                                        ),
+                                        m.id
+                                      )
+                                    }
                                   >
                                     {copiedId === m.id ? (
                                       <Check className="h-3 w-3" />
@@ -282,83 +284,10 @@ export default function Chat() {
                           }
 
                           if (part.type === "tool-invocation") {
-                            // const toolInvocation = part.toolInvocation;
-                            // const toolCallId = toolInvocation.toolCallId;
-
-                            // if (
-                            //   toolsRequiringConfirmation.includes(
-                            //     toolInvocation.toolName as keyof typeof tools
-                            //   ) &&
-                            //   toolInvocation.state === "call"
-                            // ) {
-                            //   return (
-                            //     <Card
-                            //       key={i}
-                            //       className="p-4 my-3 bg-secondary/30 border-secondary/50 rounded-md"
-                            //     >
-                            //       <div className="flex items-center gap-2 mb-3">
-                            //         <div className="bg-[#F48120]/10 p-1.5 rounded-full">
-                            //           <Bot className="h-4 w-4 text-[#F48120]" />
-                            //         </div>
-                            //         <h4 className="font-medium">
-                            //           {toolInvocation.toolName}
-                            //         </h4>
-                            //       </div>
-
-                            //       <div className="mb-3">
-                            //         <h5 className="text-xs font-medium mb-1 text-muted-foreground">
-                            //           Arguments:
-                            //         </h5>
-                            //         <pre className="bg-background/80 p-2 rounded-md text-xs overflow-auto">
-                            //           {JSON.stringify(
-                            //             toolInvocation.args,
-                            //             null,
-                            //             2
-                            //           )}
-                            //         </pre>
-                            //       </div>
-
-                            //       <div className="flex gap-2 justify-end">
-                            //         <Button
-                            //           variant="outline"
-                            //           size="sm"
-                            //           onClick={() =>
-                            //             addToolResult({
-                            //               toolCallId,
-                            //               result: APPROVAL.NO,
-                            //             })
-                            //           }
-                            //         >
-                            //           Reject
-                            //         </Button>
-                            //         <Button
-                            //           variant="default"
-                            //           size="sm"
-                            //           onClick={() =>
-                            //             addToolResult({
-                            //               toolCallId,
-                            //               result: APPROVAL.YES,
-                            //             })
-                            //           }
-                            //         >
-                            //           Approve
-                            //         </Button>
-                            //       </div>
-                            //     </Card>
-                            //   );
-                            // }
+                            // Tool calls are not surfaced in the UI.
                             return null;
                           }
                           return null;
-                          // return (
-                          //   <div key={i}>
-                          //     <Card className="p-3 rounded-2xl bg-secondary border-secondary">
-                          //       <pre className="text-xs">
-                          //         {JSON.stringify(part, null, 2)}
-                          //       </pre>
-                          //     </Card>
-                          //   </div>
-                          // );
                         })}
                       </div>
                     </div>
@@ -383,7 +312,8 @@ export default function Chat() {
               placeholder="Send a message..."
               className="flex-1 min-h-[80px] resize-none py-2 px-3"
               onKeyDown={(e) => {
-                if (e.key === "Enter" && e.shiftKey) {
+                // Enter sends, Shift+Enter inserts a newline.
+                if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
                   handleAgentSubmit(e);
                 }

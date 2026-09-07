@@ -3,6 +3,10 @@
 declare namespace Cloudflare {
 	interface Env {
 		OPENAI_API_KEY: string;
+		OPENAI_BASE_URL?: string;
+		OPENAI_MODEL_ID?: string;
+		OPENAI_REASONING_EFFORT?: string;
+		RATE_LIMITER?: RateLimit;
 		Chat: DurableObjectNamespace<import("./src/server").Chat>;
 	}
 }

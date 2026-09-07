@@ -1,1 +1,7 @@
 worker-configuration.d.ts
+pnpm-lock.yaml
+package-lock.json
+dist
+.wrangler
+.claude
+.vscode

@@ -1,58 +1,68 @@
-# BioGraph
+# 🩺 BioGraph - Medical Biomarker Analysis Assistant
 
-[Live demo](https://biograph.pjayav.workers.dev/)
+A specialized AI-powered medical assistant built on Cloudflare's Agent platform, designed to analyze biomarkers and provide detailed medical insights. This project provides an interactive chat interface for medical professionals to get thorough analysis of biomarker data with benchmarking and recommendations.
 
-A chat agent that reads a biomarker panel, compares each value against reference ranges, flags what is out of range, and explains what that combination of results suggests. Built on the Cloudflare Agents SDK with xAI Grok-2.
+## Features
 
-## What it does
+- 🔬 Comprehensive biomarker analysis
+- 📊 Benchmark comparison
+- 💬 Interactive medical consultation interface
+- 🧠 Powered by xAI Grok 4.6 on Amazon Bedrock
+- 🎯 Detailed action plans and next steps
+- 🌓 Dark/Light theme support
+- ⚡️ Real-time streaming responses
+- 🔄 Conversation history tracking
 
-- **Reads a panel and finds the outliers.** Paste lab values and it compares them against reference ranges, then highlights the ones that fall outside.
-- **Reasons out loud before concluding.** The system prompt forces extended exploration: question assumptions, follow dead ends, revise, and hold off on a conclusion until the evidence supports one. Answers come back long and show their work rather than jumping to a verdict.
-- **Suggests next steps.** Where the panel warrants it, the response includes follow-up tests and an action plan.
-- **Streams responses.** Token-by-token output over the Agents SDK, with conversation history preserved across turns.
+## Configuration
 
-## Who it's for
+| Variable                  | Required | Default                                              | Notes                                                                        |
+| ------------------------- | -------- | ---------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `OPENAI_API_KEY`          | yes      | —                                                    | Bedrock **mantle** API key. Not an xAI key, and not a `bedrock-runtime` key. |
+| `OPENAI_BASE_URL`         | no       | `https://bedrock-mantle.us-west-2.api.aws/openai/v1` |                                                                              |
+| `OPENAI_MODEL_ID`         | no       | `xai.grok-4.6`                                       | Set to `xai.grok-4.3` to switch models.                                      |
+| `OPENAI_REASONING_EFFORT` | no       | `none`                                               | `none` / `low` / `medium` / `high`. Anything else falls back to `none`.      |
 
-This is a demo of what an agent looks like when the reasoning is the product. Useful if you are evaluating the Cloudflare Agents SDK, or comparing how a deliberately slow, exploratory system prompt behaves against a normal assistant prompt on the same input.
+Local config goes in `.dev.vars` (gitignored). Production: `pnpm wrangler secret put OPENAI_API_KEY`.
 
-Not a medical device and not clinical advice. It is a reasoning demo on public reference ranges.
+`reasoning_effort` is the dominant cost lever on Grok 4.6 — reasoning tokens
+bill at the output rate and are never returned to you. Measured on a 7-marker
+panel question: `low` (the model default) cost $0.01107 per response, `none`
+cost $0.00341 with no loss of accuracy. Shortening the system prompt does _not_
+save money; it made the model reason longer and cost 56% more.
 
-## Tech stack
+Requests are rate limited to 20 per minute, both per client IP at the edge and
+per conversation inside the Durable Object. There is no authentication —
+anyone with the URL can use the app, within that limit.
 
-- Cloudflare Workers and the Cloudflare Agents SDK (`agents`)
-- xAI `grok-2-latest` via the Vercel AI SDK
-- React with Tailwind and Radix primitives
-- Vite, Vitest, Biome
+Note the rate-limit binding is not wired by `vite dev`
+(`@cloudflare/vite-plugin` 0.1.x), so limits are inactive there and the app
+degrades to allowing every request. `wrangler dev` and production both bind it.
 
-## Local development
-
-```bash
-npm install
-npm start
-```
-
-Put your key in `.dev.vars`:
-
-```
-XAI_API_KEY=<your-xai-key>
-```
-
-For deployment, set it as a Worker secret:
-
-```bash
-npx wrangler secret put XAI_API_KEY
-```
-
-## Deployment
+## Testing
 
 ```bash
-npm run deploy
+pnpm run check   # prettier + biome + tsc
+pnpm test        # unit tests
+pnpm run start   # dev server
+pnpm run smoke   # end-to-end: drives the real agent over its WebSocket
 ```
 
-## Known limitations
+## Use Cases
 
-- The tool definitions in `src/tools.ts` (weather, local time, task scheduling) are carried over from the Cloudflare agents starter and are not wired into the biomarker workflow.
-- Test coverage is a single smoke test on the Worker's 404 path.
+1. **Biomarker Analysis**
+   - Compare lab results against established benchmarks
+   - Identify out-of-range values
+   - Get detailed explanations of implications
+
+2. **Medical Recommendations**
+   - Receive evidence-based next steps
+   - Get detailed action plans
+   - Access follow-up recommendations
+
+3. **Medical Professional Support**
+   - Quick access to biomarker interpretations
+   - Evidence-based decision support
+   - Efficient patient data analysis
 
 ## License
 
