@@ -10,7 +10,6 @@ import { Avatar, AvatarFallback } from "./components/ui/avatar";
 import { Send, Trash2, Copy, Check } from "lucide-react";
 
 export default function Chat() {
-  const [showDebug, setShowDebug] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -124,21 +123,31 @@ export default function Chat() {
         <div className="shrink-0 px-4 py-3 sm:py-4 border-b border-border flex items-center gap-3 bg-background z-10 safe-top">
           <div className="flex items-center justify-center h-8 w-8 sm:h-10 sm:w-10">
             <svg
-              width="28px"
-              height="28px"
+              width="28"
+              height="28"
+              viewBox="0 0 32 32"
+              role="img"
+              aria-label="Biograph Copilot"
               className="text-[#F48120]"
-              data-icon="agents"
             >
               <title>Biograph Copilot</title>
-              <symbol id="ai:local:agents" viewBox="0 0 80 79">
-                <image
-                  href="https://s7-recruiting.cdn.greenhouse.io/external_greenhouse_job_boards/logos/400/213/800/original/Biograph_-_Black_-_Icon.png?1710277849"
-                  width="80"
-                  height="79"
-                  preserveAspectRatio="xMidYMid meet"
-                />
-              </symbol>
-              <use href="#ai:local:agents" />
+              <rect
+                x="1"
+                y="1"
+                width="30"
+                height="30"
+                rx="8"
+                fill="currentColor"
+                opacity="0.12"
+              />
+              <path
+                d="M4 16h5l2.5-6 4 12 3-9 2.5 3H28"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
             </svg>
           </div>
 
@@ -187,15 +196,9 @@ export default function Chat() {
             const isUser = m.role === "user";
             const showAvatar =
               index === 0 || agentMessages[index - 1]?.role !== m.role;
-            const showRole = showAvatar && !isUser;
 
             return (
               <div key={m.id}>
-                {showDebug && (
-                  <pre className="text-xs text-muted-foreground overflow-scroll">
-                    {JSON.stringify(m, null, 2)}
-                  </pre>
-                )}
                 <div
                   className={`flex ${isUser ? "justify-end" : "justify-start"}`}
                 >
@@ -309,7 +312,8 @@ export default function Chat() {
               placeholder="Send a message..."
               className="flex-1 min-h-[80px] resize-none py-2 px-3"
               onKeyDown={(e) => {
-                if (e.key === "Enter" && e.shiftKey) {
+                // Enter sends, Shift+Enter inserts a newline.
+                if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
                   handleAgentSubmit(e);
                 }
