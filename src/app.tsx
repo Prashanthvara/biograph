@@ -156,6 +156,14 @@ export default function Chat() {
           </Button>
         </div>
 
+        <div className="shrink-0 px-4 py-2 border-b border-border bg-secondary/20">
+          <p className="text-[11px] leading-snug text-muted-foreground">
+            This is an AI assistant, not a medical professional. Information
+            here is for general education only and is not a diagnosis. Always
+            consult a qualified clinician before acting on it.
+          </p>
+        </div>
+
         {/* Messages */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-20 max-h-[calc(100dvh-8rem)] sm:max-h-[calc(100dvh-10rem)]">
           {agentMessages.length === 0 && (
