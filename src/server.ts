@@ -16,6 +16,7 @@ import {
   TEMPERATURE,
   TOP_P,
 } from "./config";
+import { userFacingStreamError } from "./errors";
 import { AsyncLocalStorage } from "node:async_hooks";
 // we use ALS to expose the agent context to the tools
 export const agentContext = new AsyncLocalStorage<Chat>();
@@ -70,6 +71,7 @@ export class Chat extends AIChatAgent<Env> {
     // Create a streaming response that handles both text and tool outputs
     return agentContext.run(this, async () => {
       const dataStreamResponse = createDataStreamResponse({
+        onError: userFacingStreamError,
         execute: async (dataStream) => {
           const result = streamText({
             model: this.model(),
@@ -91,20 +93,26 @@ export class Chat extends AIChatAgent<Env> {
             },
             system: `You are a medical assistant that analyses patient biomarker panels.
 
-For each biomarker the user provides, compare the value against its standard
-reference range. Clearly identify every value that falls outside its range, say
-whether it is high or low, and by how much. Note in-range values briefly as
-normal. Follow the findings with concrete, practical next steps.
+When the user provides one or more lab values, call the reportPanel tool with
+every marker before you write anything. flag must be exactly one of: high, low,
+normal, unknown. Use unknown when the range depends on age, sex, or laboratory
+and you should not guess.
+
+After reportPanel, write next steps only. Do not restate each marker, its
+range, or by how much it is out of range - the table already shows that.
+
+Fill followUps with 2 to 4 short questions the user might type next.
+Follow-ups are questions, not advice: do not put dosing, starting or stopping
+a medication, or an order to accept in a chip. Do not call reportPanel when
+there are no lab values, including when you are refusing an off-domain
+question.
 
 Rules:
 - Answer only questions in the medical and health domain. If asked about
   anything else, say plainly that you cannot answer or comment on it.
-- Give the answer and the next steps only. Do not narrate your reasoning
-  process.
+- Do not narrate your reasoning process.
 - Write in clear, well-structured prose. Do not use * or # characters for
   emphasis or headings.
-- Where a reference range depends on age, sex, or laboratory, say so rather
-  than guessing.
 - You are not a doctor and this is not a diagnosis. Recommend consulting a
   qualified clinician before acting on anything you flag.`,
 
