@@ -8,6 +8,12 @@ import { Card } from "./components/ui/card";
 import { Textarea } from "./components/ui/textarea";
 import { Avatar, AvatarFallback } from "./components/ui/avatar";
 import { Send, Trash2, Copy, Check } from "lucide-react";
+import { parsePanelReport } from "./panel";
+import { isStreamingAssistantText, isWaitingForReply } from "./chat-status";
+import { LoadingState } from "./components/loading-state";
+import { ErrorState } from "./components/error-state";
+import { PanelTable } from "./components/panel-table";
+import { FollowUps } from "./components/follow-ups";
 
 export default function Chat() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -84,8 +90,11 @@ export default function Chat() {
     input: agentInput,
     handleInputChange: handleAgentInputChange,
     handleSubmit: handleAgentSubmit,
-    addToolResult,
+    append,
     clearHistory,
+    status,
+    error,
+    reload,
   } = useAgentChat({
     agent,
     maxSteps: 5,
@@ -93,7 +102,7 @@ export default function Chat() {
 
   // Scroll to bottom when messages change, with a slight delay to ensure content is rendered
   useEffect(() => {
-    if (agentMessages.length > 0) {
+    if (agentMessages.length > 0 || status === "submitted") {
       // Clear any pending scroll timeouts
       if (scrollTimeoutRef.current) {
         window.clearTimeout(scrollTimeoutRef.current);
@@ -101,7 +110,7 @@ export default function Chat() {
       // Add a small delay to ensure content is rendered
       scrollTimeoutRef.current = window.setTimeout(scrollToBottom, 100);
     }
-  }, [agentMessages, scrollToBottom]);
+  }, [agentMessages, status, scrollToBottom]);
 
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -117,9 +126,14 @@ export default function Chat() {
     }
   };
 
+  const waiting = isWaitingForReply(status, agentMessages);
+  const showCaret = isStreamingAssistantText(status, agentMessages);
+  const lastMessageId = agentMessages[agentMessages.length - 1]?.id;
+  const busy = status === "submitted" || status === "streaming";
+
   return (
     <div className="h-[100dvh] w-full bg-gradient-to-br from-[#F48120]/10 via-background/30 to-[#FAAD3F]/10 backdrop-blur-md sm:p-4 flex justify-center items-stretch bg-fixed">
-      <div className="bg-background w-full mx-auto max-w-lg flex flex-col shadow-xl rounded-none sm:rounded-md border-y sm:border border-assistant-border/20">
+      <div className="bg-background w-full mx-auto max-w-2xl flex flex-col shadow-xl rounded-none sm:rounded-md border-y sm:border border-assistant-border/20">
         <div className="shrink-0 px-4 py-3 sm:py-4 border-b border-border flex items-center gap-3 bg-background z-10 safe-top">
           <div className="flex items-center justify-center h-8 w-8 sm:h-10 sm:w-10">
             <svg
@@ -175,7 +189,7 @@ export default function Chat() {
 
         {/* Messages */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-20 max-h-[calc(100dvh-8rem)] sm:max-h-[calc(100dvh-10rem)]">
-          {agentMessages.length === 0 && (
+          {agentMessages.length === 0 && !waiting && status !== "error" && (
             <div className="h-full flex items-center justify-center">
               <Card className="bg-secondary/30 border-secondary/50 p-6 max-w-md mx-auto">
                 <div className="text-center space-y-4">
@@ -183,9 +197,9 @@ export default function Chat() {
                     Welcome to Biograph Copilot
                   </h3>
                   <p className="text-muted-foreground text-sm">
-                    Start a conversation with your copilot by providing patient
-                    information to get structured output with personalized
-                    recommendations.
+                    Paste a lab panel to see each marker against its range, then
+                    next steps. Follow-up questions appear as chips under the
+                    table.
                   </p>
                 </div>
               </Card>
@@ -196,6 +210,8 @@ export default function Chat() {
             const isUser = m.role === "user";
             const showAvatar =
               index === 0 || agentMessages[index - 1]?.role !== m.role;
+            const isLastAssistant =
+              !isUser && m.id === lastMessageId && status === "ready";
 
             return (
               <div key={m.id}>
@@ -203,8 +219,10 @@ export default function Chat() {
                   className={`flex ${isUser ? "justify-end" : "justify-start"}`}
                 >
                   <div
-                    className={`flex gap-2 max-w-[85%] ${
-                      isUser ? "flex-row-reverse" : "flex-row"
+                    className={`flex gap-2 ${
+                      isUser
+                        ? "max-w-[85%] flex-row-reverse"
+                        : "w-full flex-row"
                     }`}
                   >
                     {showAvatar && !isUser ? (
@@ -214,13 +232,17 @@ export default function Chat() {
                         </AvatarFallback>
                       </Avatar>
                     ) : (
-                      !isUser && <div className="w-8" />
+                      !isUser && <div className="w-8 flex-shrink-0" />
                     )}
 
-                    <div>
+                    <div className="min-w-0 flex-1 space-y-2">
                       <div>
                         {m.parts?.map((part, i) => {
                           if (part.type === "text") {
+                            const isLastText =
+                              showCaret &&
+                              m.id === lastMessageId &&
+                              i === (m.parts?.length ?? 0) - 1;
                             return (
                               <div key={`${m.id}-part-${i}`}>
                                 <Card
@@ -246,6 +268,14 @@ export default function Chat() {
                                       /^scheduled message: /,
                                       ""
                                     )}
+                                    {isLastText ? (
+                                      <span
+                                        className="inline-block w-[0.6ch] ml-0.5 bg-foreground/70 align-baseline motion-safe:animate-pulse"
+                                        aria-hidden="true"
+                                      >
+                                        ▍
+                                      </span>
+                                    ) : null}
                                   </p>
                                 </Card>
                                 <div
@@ -284,7 +314,45 @@ export default function Chat() {
                           }
 
                           if (part.type === "tool-invocation") {
-                            // Tool calls are not surfaced in the UI.
+                            const invocation = part.toolInvocation;
+                            if (invocation.toolName !== "reportPanel") {
+                              return null;
+                            }
+                            if (invocation.state === "call") {
+                              return (
+                                <p
+                                  key={`${m.id}-tool-${i}`}
+                                  className="text-xs text-muted-foreground"
+                                >
+                                  Reading panel…
+                                </p>
+                              );
+                            }
+                            if (invocation.state === "result") {
+                              const report = parsePanelReport(
+                                invocation.result
+                              );
+                              if (!report) return null;
+                              return (
+                                <div
+                                  key={`${m.id}-tool-${i}`}
+                                  className="space-y-2"
+                                >
+                                  <PanelTable report={report} />
+                                  {isLastAssistant ? (
+                                    <FollowUps
+                                      items={report.followUps}
+                                      onSelect={(item) => {
+                                        void append({
+                                          role: "user",
+                                          content: item,
+                                        });
+                                      }}
+                                    />
+                                  ) : null}
+                                </div>
+                              );
+                            }
                             return null;
                           }
                           return null;
@@ -296,6 +364,20 @@ export default function Chat() {
               </div>
             );
           })}
+          {waiting ? <LoadingState /> : null}
+
+          {status === "error" ? (
+            <ErrorState
+              message={
+                error?.message ||
+                "Something went wrong while generating a reply. Please try again."
+              }
+              onRetry={() => {
+                void reload();
+              }}
+            />
+          ) : null}
+
           <div ref={messagesEndRef} />
         </div>
 
@@ -309,12 +391,13 @@ export default function Chat() {
               ref={inputRef}
               value={agentInput}
               onChange={handleAgentInputChange}
-              placeholder="Send a message..."
+              placeholder="Paste a lab panel or ask a follow-up…"
               className="flex-1 min-h-[80px] resize-none py-2 px-3"
               onKeyDown={(e) => {
                 // Enter sends, Shift+Enter inserts a newline.
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
+                  if (busy) return;
                   handleAgentSubmit(e);
                 }
               }}
@@ -323,6 +406,7 @@ export default function Chat() {
               type="submit"
               size="icon"
               className="rounded-full h-12 w-12 sm:h-9 sm:w-9 flex-shrink-0"
+              disabled={busy}
             >
               <Send className="h-5 w-5 sm:h-4 sm:w-4" />
             </Button>
