@@ -17,10 +17,17 @@ const message = flag(
 );
 const room = `smoke-${Date.now()}`;
 const timeoutMs = Number(flag("timeout", "120000"));
+// A lab-panel question must produce a reportPanel tool call, not just prose.
+const expectPanel = args.includes("--expect-panel")
+  ? true
+  : args.includes("--no-panel")
+    ? false
+    : /mg\/dL|HbA1c|LDL/i.test(message);
 
 const ws = new WebSocket(`ws://localhost:${port}/agents/chat/${room}`);
 let text = "";
 let streamError = "";
+const toolNames = [];
 
 const finish = (code, summary) => {
   console.log(summary);
@@ -74,6 +81,7 @@ ws.onmessage = (event) => {
   for (const line of (envelope.body || "").split("\n")) {
     if (line.startsWith("0:")) text += JSON.parse(line.slice(2));
     if (line.startsWith("3:")) streamError += line.slice(2);
+    if (line.includes("reportPanel")) toolNames.push("reportPanel");
   }
 
   if (!envelope.done) return;
@@ -85,7 +93,16 @@ ws.onmessage = (event) => {
       "FAIL: empty response. Reasoning likely consumed the whole maxTokens budget."
     );
   }
-  finish(0, `PASS (${text.length} chars):\n\n${text.trim()}`);
+  if (expectPanel && !toolNames.includes("reportPanel")) {
+    return finish(
+      1,
+      `FAIL: expected reportPanel tool call, got text only:\n\n${text.trim()}`
+    );
+  }
+  finish(
+    0,
+    `PASS (${text.length} chars, tools=${toolNames.join(",") || "none"}):\n\n${text.trim()}`
+  );
 };
 
 ws.onerror = () =>
