@@ -2,7 +2,6 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useAgent } from "agents/react";
 import { useAgentChat } from "agents/ai-react";
 import type { Message } from "@ai-sdk/react";
-// import type { tools } from "./tools";
 import { Button } from "./components/ui/button";
 import { Card } from "./components/ui/card";
 import { Textarea } from "./components/ui/textarea";
@@ -236,128 +235,122 @@ export default function Chat() {
                     )}
 
                     <div className="min-w-0 flex-1 space-y-2">
-                      <div>
-                        {m.parts?.map((part, i) => {
-                          if (part.type === "text") {
-                            const isLastText =
-                              showCaret &&
-                              m.id === lastMessageId &&
-                              i === (m.parts?.length ?? 0) - 1;
-                            return (
-                              <div key={`${m.id}-part-${i}`}>
-                                <Card
-                                  className={`p-3 rounded-md ${
-                                    isUser
-                                      ? "bg-primary text-primary-foreground rounded-br-none"
-                                      : "bg-secondary/10 rounded-bl-none border-assistant-border"
-                                  } ${
-                                    part.text.startsWith("scheduled message")
-                                      ? "border-accent/50"
-                                      : ""
-                                  } relative`}
-                                >
-                                  {part.text.startsWith(
-                                    "scheduled message"
-                                  ) && (
-                                    <span className="absolute -top-3 -left-2 text-base">
-                                      🕒
-                                    </span>
-                                  )}
-                                  <p className="text-sm whitespace-pre-wrap">
-                                    {part.text.replace(
-                                      /^scheduled message: /,
-                                      ""
-                                    )}
-                                    {isLastText ? (
-                                      <span
-                                        className="inline-block w-[0.6ch] ml-0.5 bg-foreground/70 align-baseline motion-safe:animate-pulse"
-                                        aria-hidden="true"
-                                      >
-                                        ▍
-                                      </span>
-                                    ) : null}
-                                  </p>
-                                </Card>
-                                <div
-                                  className={`flex items-center gap-2 mt-1 text-xs text-muted-foreground ${
-                                    isUser ? "flex-row-reverse" : "flex-row"
-                                  }`}
-                                >
-                                  <span>
-                                    {formatTime(
-                                      new Date(m.createdAt as unknown as string)
-                                    )}
+                      {m.parts?.map((part, i) => {
+                        if (part.type === "text") {
+                          const isLastText =
+                            showCaret &&
+                            m.id === lastMessageId &&
+                            i === (m.parts?.length ?? 0) - 1;
+                          return (
+                            <div key={`${m.id}-part-${i}`}>
+                              <Card
+                                className={`p-3 rounded-md ${
+                                  isUser
+                                    ? "bg-primary text-primary-foreground rounded-br-none"
+                                    : "bg-secondary/10 rounded-bl-none border-assistant-border"
+                                } ${
+                                  part.text.startsWith("scheduled message")
+                                    ? "border-accent/50"
+                                    : ""
+                                } relative`}
+                              >
+                                {part.text.startsWith("scheduled message") && (
+                                  <span className="absolute -top-3 -left-2 text-base">
+                                    🕒
                                   </span>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-4 w-4 p-0"
-                                    onClick={() =>
-                                      handleCopy(
-                                        part.text.replace(
-                                          /^scheduled message: /,
-                                          ""
-                                        ),
-                                        m.id
-                                      )
-                                    }
-                                  >
-                                    {copiedId === m.id ? (
-                                      <Check className="h-3 w-3" />
-                                    ) : (
-                                      <Copy className="h-3 w-3" />
-                                    )}
-                                  </Button>
-                                </div>
+                                )}
+                                <p className="text-sm whitespace-pre-wrap">
+                                  {part.text.replace(
+                                    /^scheduled message: /,
+                                    ""
+                                  )}
+                                  {isLastText ? (
+                                    <span
+                                      className="inline-block w-[0.6ch] ml-0.5 bg-foreground/70 align-baseline motion-safe:animate-pulse"
+                                      aria-hidden="true"
+                                    >
+                                      ▍
+                                    </span>
+                                  ) : null}
+                                </p>
+                              </Card>
+                              <div
+                                className={`flex items-center gap-2 mt-1 text-xs text-muted-foreground ${
+                                  isUser ? "flex-row-reverse" : "flex-row"
+                                }`}
+                              >
+                                <span>
+                                  {formatTime(
+                                    new Date(m.createdAt as unknown as string)
+                                  )}
+                                </span>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-4 w-4 p-0"
+                                  onClick={() =>
+                                    handleCopy(
+                                      part.text.replace(
+                                        /^scheduled message: /,
+                                        ""
+                                      ),
+                                      m.id
+                                    )
+                                  }
+                                >
+                                  {copiedId === m.id ? (
+                                    <Check className="h-3 w-3" />
+                                  ) : (
+                                    <Copy className="h-3 w-3" />
+                                  )}
+                                </Button>
+                              </div>
+                            </div>
+                          );
+                        }
+
+                        if (part.type === "tool-invocation") {
+                          const invocation = part.toolInvocation;
+                          if (invocation.toolName !== "reportPanel") {
+                            return null;
+                          }
+                          if (invocation.state === "call") {
+                            return (
+                              <p
+                                key={`${m.id}-tool-${i}`}
+                                className="text-xs text-muted-foreground"
+                              >
+                                Reading panel…
+                              </p>
+                            );
+                          }
+                          if (invocation.state === "result") {
+                            const report = parsePanelReport(invocation.result);
+                            if (!report) return null;
+                            return (
+                              <div
+                                key={`${m.id}-tool-${i}`}
+                                className="space-y-2"
+                              >
+                                <PanelTable report={report} />
+                                {isLastAssistant ? (
+                                  <FollowUps
+                                    items={report.followUps}
+                                    onSelect={(item) => {
+                                      void append({
+                                        role: "user",
+                                        content: item,
+                                      });
+                                    }}
+                                  />
+                                ) : null}
                               </div>
                             );
                           }
-
-                          if (part.type === "tool-invocation") {
-                            const invocation = part.toolInvocation;
-                            if (invocation.toolName !== "reportPanel") {
-                              return null;
-                            }
-                            if (invocation.state === "call") {
-                              return (
-                                <p
-                                  key={`${m.id}-tool-${i}`}
-                                  className="text-xs text-muted-foreground"
-                                >
-                                  Reading panel…
-                                </p>
-                              );
-                            }
-                            if (invocation.state === "result") {
-                              const report = parsePanelReport(
-                                invocation.result
-                              );
-                              if (!report) return null;
-                              return (
-                                <div
-                                  key={`${m.id}-tool-${i}`}
-                                  className="space-y-2"
-                                >
-                                  <PanelTable report={report} />
-                                  {isLastAssistant ? (
-                                    <FollowUps
-                                      items={report.followUps}
-                                      onSelect={(item) => {
-                                        void append({
-                                          role: "user",
-                                          content: item,
-                                        });
-                                      }}
-                                    />
-                                  ) : null}
-                                </div>
-                              );
-                            }
-                            return null;
-                          }
                           return null;
-                        })}
-                      </div>
+                        }
+                        return null;
+                      })}
                     </div>
                   </div>
                 </div>

@@ -34,11 +34,11 @@ export function PanelTable({ report }: { report: PanelReport }) {
           </tr>
         </thead>
         <tbody>
-          {report.markers.map((row) => {
+          {report.markers.map((row, index) => {
             const alert = isOutOfRange(row.flag);
             return (
               <tr
-                key={`${row.name}-${row.value}`}
+                key={`${row.name}-${row.value}-${index}`}
                 className={alert ? "bg-destructive/5" : undefined}
               >
                 <td className="px-3 py-2 font-medium whitespace-nowrap">
