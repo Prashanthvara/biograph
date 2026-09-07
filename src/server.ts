@@ -8,8 +8,7 @@ import {
   type StreamTextOnFinishCallback,
 } from "ai";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
-import { processToolCalls } from "./utils";
-import { tools, executions } from "./tools";
+import { tools } from "./tools";
 import { resolveReasoningEffort, TEMPERATURE, TOP_P } from "./config";
 import { AsyncLocalStorage } from "node:async_hooks";
 // we use ALS to expose the agent context to the tools
@@ -51,15 +50,6 @@ export class Chat extends AIChatAgent<Env> {
     return agentContext.run(this, async () => {
       const dataStreamResponse = createDataStreamResponse({
         execute: async (dataStream) => {
-          // Process any pending tool calls from previous messages
-          // This handles human-in-the-loop confirmations for tools
-          const processedMessages = await processToolCalls({
-            messages: this.messages,
-            dataStream,
-            tools,
-            executions,
-          });
-
           const result = streamText({
             model: this.model(),
             // Grok 4.3/4.6 always reason, and reasoning tokens are drawn from the
@@ -97,7 +87,7 @@ Rules:
 - You are not a doctor and this is not a diagnosis. Recommend consulting a
   qualified clinician before acting on anything you flag.`,
 
-            messages: processedMessages,
+            messages: this.messages,
             tools,
             onFinish,
             onError: (error) => {

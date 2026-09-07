@@ -2,18 +2,12 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useAgent } from "agents/react";
 import { useAgentChat } from "agents/ai-react";
 import type { Message } from "@ai-sdk/react";
-import { APPROVAL } from "./shared";
 // import type { tools } from "./tools";
 import { Button } from "./components/ui/button";
 import { Card } from "./components/ui/card";
 import { Textarea } from "./components/ui/textarea";
 import { Avatar, AvatarFallback } from "./components/ui/avatar";
-import { Send, Bot, Trash2, Copy, Check } from "lucide-react";
-
-// List of tools that require human confirmation
-// const toolsRequiringConfirmation: (keyof typeof tools)[] = [
-//   "getWeatherInformation",
-// ];
+import { Send, Trash2, Copy, Check } from "lucide-react";
 
 export default function Chat() {
   const [showDebug, setShowDebug] = useState(false);
@@ -279,83 +273,10 @@ export default function Chat() {
                           }
 
                           if (part.type === "tool-invocation") {
-                            // const toolInvocation = part.toolInvocation;
-                            // const toolCallId = toolInvocation.toolCallId;
-
-                            // if (
-                            //   toolsRequiringConfirmation.includes(
-                            //     toolInvocation.toolName as keyof typeof tools
-                            //   ) &&
-                            //   toolInvocation.state === "call"
-                            // ) {
-                            //   return (
-                            //     <Card
-                            //       key={i}
-                            //       className="p-4 my-3 bg-secondary/30 border-secondary/50 rounded-md"
-                            //     >
-                            //       <div className="flex items-center gap-2 mb-3">
-                            //         <div className="bg-[#F48120]/10 p-1.5 rounded-full">
-                            //           <Bot className="h-4 w-4 text-[#F48120]" />
-                            //         </div>
-                            //         <h4 className="font-medium">
-                            //           {toolInvocation.toolName}
-                            //         </h4>
-                            //       </div>
-
-                            //       <div className="mb-3">
-                            //         <h5 className="text-xs font-medium mb-1 text-muted-foreground">
-                            //           Arguments:
-                            //         </h5>
-                            //         <pre className="bg-background/80 p-2 rounded-md text-xs overflow-auto">
-                            //           {JSON.stringify(
-                            //             toolInvocation.args,
-                            //             null,
-                            //             2
-                            //           )}
-                            //         </pre>
-                            //       </div>
-
-                            //       <div className="flex gap-2 justify-end">
-                            //         <Button
-                            //           variant="outline"
-                            //           size="sm"
-                            //           onClick={() =>
-                            //             addToolResult({
-                            //               toolCallId,
-                            //               result: APPROVAL.NO,
-                            //             })
-                            //           }
-                            //         >
-                            //           Reject
-                            //         </Button>
-                            //         <Button
-                            //           variant="default"
-                            //           size="sm"
-                            //           onClick={() =>
-                            //             addToolResult({
-                            //               toolCallId,
-                            //               result: APPROVAL.YES,
-                            //             })
-                            //           }
-                            //         >
-                            //           Approve
-                            //         </Button>
-                            //       </div>
-                            //     </Card>
-                            //   );
-                            // }
+                            // Tool calls are not surfaced in the UI.
                             return null;
                           }
                           return null;
-                          // return (
-                          //   <div key={i}>
-                          //     <Card className="p-3 rounded-2xl bg-secondary border-secondary">
-                          //       <pre className="text-xs">
-                          //         {JSON.stringify(part, null, 2)}
-                          //       </pre>
-                          //     </Card>
-                          //   </div>
-                          // );
                         })}
                       </div>
                     </div>
