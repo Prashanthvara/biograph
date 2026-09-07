@@ -7,7 +7,13 @@
   },
   "files": {
     "ignoreUnknown": false,
-    "ignore": ["node_modules", "dist", "./worker-configuration.d.ts"]
+    "ignore": [
+      "node_modules",
+      "dist",
+      "./worker-configuration.d.ts",
+      ".wrangler",
+      ".claude"
+    ]
   },
   "formatter": {
     "enabled": false,
