@@ -7,11 +7,45 @@ A specialized AI-powered medical assistant built on Cloudflare's Agent platform,
 - 🔬 Comprehensive biomarker analysis
 - 📊 Benchmark comparison
 - 💬 Interactive medical consultation interface
-- 🧠 Powered by Grok-2 AI model
+- 🧠 Powered by xAI Grok 4.6 on Amazon Bedrock
 - 🎯 Detailed action plans and next steps
 - 🌓 Dark/Light theme support
 - ⚡️ Real-time streaming responses
 - 🔄 Conversation history tracking
+
+## Configuration
+
+| Variable                  | Required | Default                                              | Notes                                                                        |
+| ------------------------- | -------- | ---------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `OPENAI_API_KEY`          | yes      | —                                                    | Bedrock **mantle** API key. Not an xAI key, and not a `bedrock-runtime` key. |
+| `OPENAI_BASE_URL`         | no       | `https://bedrock-mantle.us-west-2.api.aws/openai/v1` |                                                                              |
+| `OPENAI_MODEL_ID`         | no       | `xai.grok-4.6`                                       | Set to `xai.grok-4.3` to switch models.                                      |
+| `OPENAI_REASONING_EFFORT` | no       | `none`                                               | `none` / `low` / `medium` / `high`. Anything else falls back to `none`.      |
+
+Local config goes in `.dev.vars` (gitignored). Production: `pnpm wrangler secret put OPENAI_API_KEY`.
+
+`reasoning_effort` is the dominant cost lever on Grok 4.6 — reasoning tokens
+bill at the output rate and are never returned to you. Measured on a 7-marker
+panel question: `low` (the model default) cost $0.01107 per response, `none`
+cost $0.00341 with no loss of accuracy. Shortening the system prompt does _not_
+save money; it made the model reason longer and cost 56% more.
+
+Requests are rate limited to 20 per minute, both per client IP at the edge and
+per conversation inside the Durable Object. There is no authentication —
+anyone with the URL can use the app, within that limit.
+
+Note the rate-limit binding is not wired by `vite dev`
+(`@cloudflare/vite-plugin` 0.1.x), so limits are inactive there and the app
+degrades to allowing every request. `wrangler dev` and production both bind it.
+
+## Testing
+
+```bash
+pnpm run check   # prettier + biome + tsc
+pnpm test        # unit tests
+pnpm run start   # dev server
+pnpm run smoke   # end-to-end: drives the real agent over its WebSocket
+```
 
 ## Use Cases
 

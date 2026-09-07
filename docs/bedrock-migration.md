@@ -205,7 +205,16 @@ Worker keeps serving until deleted.
 
 ## Known open items
 
-- No authentication or rate limiting; anyone with the URL spends Bedrock quota.
-- No medical disclaimer in the UI (the model volunteers one in its output).
-- `@ai-sdk/xai` is still in `package.json` but unused.
-- Pre-existing lint error at `src/app.tsx:231` (array index as React key).
+- No authentication; anyone with the URL can use the app. Rate limited to 20
+  requests/minute per IP and per conversation, which caps but does not prevent
+  spend.
+- Token usage still reports `NaN` — `@ai-sdk/openai-compatible@0.1.x` does not
+  parse usage off mantle's stream, so cost tracking built on `onFinish` values
+  is blind. Unresolved.
+- `vite build` writes a plaintext copy of the mantle key to
+  `dist/hippocratic/.dev.vars` for local `wrangler dev`. `dist` is gitignored
+  and the generated deploy config has `"vars": {}`, so it does not reach
+  production; the `deploy` script deletes it before uploading.
+- The `ratelimits` binding is not wired into miniflare by
+  `@cloudflare/vite-plugin@0.1.x`, so rate limits are inactive under
+  `vite dev`. They are bound under `wrangler dev` and in production.
