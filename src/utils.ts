@@ -51,7 +51,7 @@ export async function processToolCalls<
   };
 }): Promise<Message[]> {
   const lastMessage = messages[messages.length - 1];
-  const parts = lastMessage.parts;
+  const parts = lastMessage?.parts;
   if (!parts) return messages;
 
   const processedParts = await Promise.all(

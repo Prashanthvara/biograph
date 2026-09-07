@@ -1,7 +1,5 @@
 import { routeAgentRequest, type Schedule } from "agents";
 
-import { unstable_getSchedulePrompt } from "agents/schedule";
-
 import { AIChatAgent } from "agents/ai-chat-agent";
 import {
   createDataStreamResponse,
@@ -9,17 +7,38 @@ import {
   streamText,
   type StreamTextOnFinishCallback,
 } from "ai";
-import { createXai } from "@ai-sdk/xai";
+import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { processToolCalls } from "./utils";
 import { tools, executions } from "./tools";
 import { AsyncLocalStorage } from "node:async_hooks";
-
 // we use ALS to expose the agent context to the tools
 export const agentContext = new AsyncLocalStorage<Chat>();
+
+// Per the Grok 4.6 model card: bedrock-mantle, OpenAI-compatible Chat
+// Completions, Bedrock API key as the bearer token.
+// 4.6 on mantle is us-west-2 ONLY (4.3 is also in us-east-1/2).
+// https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-xai-grok-4-6.html
+const BASE_URL = "https://bedrock-mantle.us-west-2.api.aws/openai/v1";
+const MODEL_ID = "xai.grok-4.6";
 /**
  * Chat Agent implementation that handles real-time AI chat interactions
  */
 export class Chat extends AIChatAgent<Env> {
+  // Built once per Durable Object instance rather than per message.
+  #model?: ReturnType<ReturnType<typeof createOpenAICompatible>>;
+
+  private model() {
+    if (!this.#model) {
+      const bedrock = createOpenAICompatible({
+        name: "bedrock",
+        baseURL: this.env.OPENAI_BASE_URL ?? BASE_URL,
+        apiKey: this.env.OPENAI_API_KEY,
+      });
+      this.#model = bedrock(this.env.OPENAI_MODEL_ID ?? MODEL_ID);
+    }
+    return this.#model;
+  }
+
   /**
    * Handles incoming chat messages and manages the response stream
    * @param onFinish - Callback function executed when streaming completes
@@ -40,20 +59,12 @@ export class Chat extends AIChatAgent<Env> {
             executions,
           });
 
-          // Initialize OpenAI client with API key from environment
-          const xai = createXai({
-            apiKey: this.env.OPENAI_API_KEY,
-          });
-
-          // Cloudflare AI Gateway
-          // const openai = createOpenAI({
-          //   apiKey: this.env.OPENAI_API_KEY,
-          //   baseURL: this.env.GATEWAY_BASE_URL,
-          // });
-
-          // Stream the AI response using GPT-4
           const result = streamText({
-            model: xai("grok-2-latest"),
+            model: this.model(),
+            // Grok 4.3/4.6 always reason, and reasoning tokens are drawn from the
+            // same budget as the answer - too small a cap returns content: null
+            // with finish_reason "length". Leave ample room.
+            maxTokens: 8000,
             system: `You are an medical assistant that engages in extremely thorough reasoning. 
 
 ## Core Principles
@@ -92,7 +103,6 @@ Compare the biomarkers with the betchmarks and highlight the ones that are out o
 Make sure you dont give me your reasining process, just give me the answer and next steps.
 
 `,
-
 
             messages: processedMessages,
             tools,

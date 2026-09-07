@@ -13,8 +13,6 @@ A specialized AI-powered medical assistant built on Cloudflare's Agent platform,
 - ⚡️ Real-time streaming responses
 - 🔄 Conversation history tracking
 
-
-
 ## Use Cases
 
 1. **Biomarker Analysis**

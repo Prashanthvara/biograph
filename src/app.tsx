@@ -6,11 +6,9 @@ import { APPROVAL } from "./shared";
 // import type { tools } from "./tools";
 import { Button } from "./components/ui/button";
 import { Card } from "./components/ui/card";
-import { Input } from "./components/ui/input";
 import { Textarea } from "./components/ui/textarea";
 import { Avatar, AvatarFallback } from "./components/ui/avatar";
-import { Switch } from "./components/ui/switch";
-import { Send, Bot, Trash2, Bug, Copy, Check } from "lucide-react";
+import { Send, Bot, Trash2, Copy, Check } from "lucide-react";
 
 // List of tools that require human confirmation
 // const toolsRequiringConfirmation: (keyof typeof tools)[] = [
@@ -37,9 +35,9 @@ export default function Chat() {
       timeoutId = window.setTimeout(handleResize, 250);
     };
 
-    window.addEventListener('resize', debouncedResize);
+    window.addEventListener("resize", debouncedResize);
     return () => {
-      window.removeEventListener('resize', debouncedResize);
+      window.removeEventListener("resize", debouncedResize);
       clearTimeout(timeoutId);
     };
   }, []);
@@ -53,11 +51,11 @@ export default function Chat() {
     // Use RAF for smoother scrolling
     requestAnimationFrame(() => {
       if (messagesEndRef.current) {
-        const behavior = isMobile ? 'auto' : 'smooth';
+        const behavior = isMobile ? "auto" : "smooth";
         try {
-          messagesEndRef.current.scrollIntoView({ 
+          messagesEndRef.current.scrollIntoView({
             behavior,
-            block: 'end',
+            block: "end",
           });
         } catch (error) {
           // Fallback for browsers that don't support smooth scrolling
@@ -112,17 +110,6 @@ export default function Chat() {
     }
   }, [agentMessages, scrollToBottom]);
 
-  const pendingToolCallConfirmation = agentMessages.some((m: Message) =>
-    m.parts?.some(
-      (part) =>
-        part.type === "tool-invocation" &&
-        part.toolInvocation.state === "call" //&&
-        // toolsRequiringConfirmation.includes(
-        //   part.toolInvocation.toolName as keyof typeof tools
-        // )
-    )
-  );
-
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   };
@@ -133,7 +120,7 @@ export default function Chat() {
       setCopiedId(messageId);
       setTimeout(() => setCopiedId(null), 2000);
     } catch (err) {
-      console.error('Failed to copy text: ', err);
+      console.error("Failed to copy text: ", err);
     }
   };
 
@@ -185,7 +172,9 @@ export default function Chat() {
                     Welcome to Biograph Copilot
                   </h3>
                   <p className="text-muted-foreground text-sm">
-                    Start a conversation with your copilot by providing patient information to get structured output with personalized recommendations.
+                    Start a conversation with your copilot by providing patient
+                    information to get structured output with personalized
+                    recommendations.
                   </p>
                 </div>
               </Card>
@@ -228,7 +217,7 @@ export default function Chat() {
                         {m.parts?.map((part, i) => {
                           if (part.type === "text") {
                             return (
-                              <div key={i}>
+                              <div key={`${m.id}-part-${i}`}>
                                 <Card
                                   className={`p-3 rounded-md ${
                                     isUser
@@ -268,7 +257,15 @@ export default function Chat() {
                                     variant="ghost"
                                     size="icon"
                                     className="h-4 w-4 p-0"
-                                    onClick={() => handleCopy(part.text.replace(/^scheduled message: /, ""), m.id)}
+                                    onClick={() =>
+                                      handleCopy(
+                                        part.text.replace(
+                                          /^scheduled message: /,
+                                          ""
+                                        ),
+                                        m.id
+                                      )
+                                    }
                                   >
                                     {copiedId === m.id ? (
                                       <Check className="h-3 w-3" />
