@@ -4,7 +4,7 @@
  */
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "hippocratic",
+  "name": "biograph",
   "main": "src/server.ts",
   "compatibility_date": "2025-02-04",
   "compatibility_flags": ["nodejs_compat"],

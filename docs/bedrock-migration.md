@@ -198,10 +198,12 @@ pnpm wrangler secret put OPENAI_API_KEY   # the mantle key
 pnpm run deploy
 ```
 
-`wrangler.jsonc` was renamed `biograph` → `hippocratic`. That deploys a **new**
-Worker: new `*.workers.dev` subdomain and **fresh Durable Object storage**, so
-existing conversation history under `biograph` does not carry over, and the old
-Worker keeps serving until deleted.
+The Worker is named `biograph` in `wrangler.jsonc`. That name is the Worker's
+identity at deploy time — it decides the script name, the `*.workers.dev`
+subdomain, and which Durable Object storage the deploy binds to. It is kept as
+`biograph` deliberately, so `wrangler deploy` redeploys over the existing Worker
+and its conversation history rather than provisioning a new one. Renaming it
+would create a second Worker with empty storage and leave the old one serving.
 
 ## Known open items
 
@@ -212,7 +214,7 @@ Worker keeps serving until deleted.
   parse usage off mantle's stream, so cost tracking built on `onFinish` values
   is blind. Unresolved.
 - `vite build` writes a plaintext copy of the mantle key to
-  `dist/hippocratic/.dev.vars` for local `wrangler dev`. `dist` is gitignored
+  `dist/<worker-name>/.dev.vars` for local `wrangler dev`. `dist` is gitignored
   and the generated deploy config has `"vars": {}`, so it does not reach
   production; the `deploy` script deletes it before uploading.
 - The `ratelimits` binding is not wired into miniflare by

@@ -7,7 +7,7 @@
   "scripts": {
     "start": "vite dev",
     "smoke": "node scripts/smoke.mjs",
-    "deploy": "vite build && rm -f dist/hippocratic/.dev.vars && wrangler deploy",
+    "deploy": "vite build && rm -f dist/*/.dev.vars && wrangler deploy",
     "test": "vitest",
     "types": "wrangler types",
     "format": "prettier --write .",
