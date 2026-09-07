@@ -83,9 +83,15 @@ These were confirmed by reading the installed packages, not from memory.
    `definitions/RawConfig/properties/ratelimits`): each entry requires `name`,
    `namespace_id`, and `simple: { limit, period }`, where **`period` must be
    exactly `10` or `60`**.
-5. **The rate limiter works locally.** Wrangler passes `ratelimits` into
-   Miniflare options (`wrangler-dist/cli.js:50209-50211`), so it is enforced by
-   workerd under `vite dev` and `vitest-pool-workers`.
+5. **The rate limiter binds under `wrangler dev`, but NOT under `vite dev`.**
+   Wrangler passes `ratelimits` into Miniflare options
+   (`wrangler-dist/cli.js:50209-50211`) and `wrangler dev` reports
+   `env.RATE_LIMITER (20 requests/60s) Rate Limit local`, enforcing exactly 20
+   then 429. `@cloudflare/vite-plugin@0.1.21` does **not** wire it, so
+   `env.RATE_LIMITER` is `undefined` under `vite dev` and dereferencing it
+   crashes the dev server. The gate must therefore tolerate a missing limiter.
+   The plugin _does_ emit `ratelimits` into `dist/hippocratic/wrangler.json`,
+   so deployment is unaffected.
 6. **`RateLimit` / `RateLimitOptions` / `RateLimitOutcome` types already exist**
    in `worker-configuration.d.ts:5019-5032`. No new type packages needed.
 7. **Chat messages do not each cost an HTTP request.** The client opens one

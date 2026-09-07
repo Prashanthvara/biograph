@@ -43,3 +43,25 @@ export function resolveReasoningEffort(
  */
 export const TEMPERATURE = 0.2;
 export const TOP_P = 0.95;
+
+/**
+ * Returns true when the request may proceed.
+ *
+ * The binding is absent under some local setups — @cloudflare/vite-plugin
+ * 0.1.x does not wire `ratelimits` into miniflare — and a limiter that is
+ * missing or erroring should degrade to "allow" rather than take the whole
+ * app down. Production has the binding; see wrangler.jsonc.
+ */
+export async function allowRequest(
+  limiter: RateLimit | undefined,
+  key: string
+): Promise<boolean> {
+  if (!limiter) return true;
+  try {
+    const { success } = await limiter.limit({ key });
+    return success;
+  } catch (error) {
+    console.error("rate limiter unavailable, allowing request:", error);
+    return true;
+  }
+}

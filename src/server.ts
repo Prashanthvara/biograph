@@ -7,9 +7,15 @@ import {
   streamText,
   type StreamTextOnFinishCallback,
 } from "ai";
+import { formatDataStreamPart } from "@ai-sdk/ui-utils";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { tools } from "./tools";
-import { resolveReasoningEffort, TEMPERATURE, TOP_P } from "./config";
+import {
+  allowRequest,
+  resolveReasoningEffort,
+  TEMPERATURE,
+  TOP_P,
+} from "./config";
 import { AsyncLocalStorage } from "node:async_hooks";
 // we use ALS to expose the agent context to the tools
 export const agentContext = new AsyncLocalStorage<Chat>();
@@ -46,6 +52,21 @@ export class Chat extends AIChatAgent<Env> {
 
   // biome-ignore lint/complexity/noBannedTypes: <explanation>
   async onChatMessage(onFinish: StreamTextOnFinishCallback<{}>) {
+    // This is the limit that actually caps Bedrock spend - one WebSocket can
+    // carry unlimited messages, so the fetch-level gate does not see them.
+    if (!(await allowRequest(this.env.RATE_LIMITER, `chat:${this.name}`))) {
+      return createDataStreamResponse({
+        execute: async (dataStream) => {
+          dataStream.write(
+            formatDataStreamPart(
+              "text",
+              "You are sending messages too quickly. Please wait a moment and try again."
+            )
+          );
+        },
+      });
+    }
+
     // Create a streaming response that handles both text and tool outputs
     return agentContext.run(this, async () => {
       const dataStreamResponse = createDataStreamResponse({
@@ -127,6 +148,17 @@ export default {
         "OPENAI_API_KEY is not set, don't forget to set it locally in .dev.vars, and use `wrangler secret bulk .dev.vars` to upload it to production"
       );
       return new Response("OPENAI_API_KEY is not set", { status: 500 });
+    }
+
+    // Caps connection attempts. Note this does NOT cap model calls: chat
+    // messages travel over one long-lived WebSocket, so a single connection
+    // can send many. onChatMessage carries the limit that caps spend.
+    const clientKey = request.headers.get("cf-connecting-ip") ?? "anonymous";
+    if (!(await allowRequest(env.RATE_LIMITER, clientKey))) {
+      return new Response("Too many requests", {
+        status: 429,
+        headers: { "retry-after": "60" },
+      });
     }
     return (
       // Route the request to our agent or return 404 if not found
