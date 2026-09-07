@@ -15,9 +15,10 @@ export function LoadingState() {
   }, []);
 
   return (
-    <div
+    // <output> carries an implicit role="status"; biome's useSemanticElements
+    // rejects the equivalent <div role="status">.
+    <output
       className="flex items-center gap-2 text-sm text-muted-foreground px-1"
-      role="status"
       aria-live="polite"
     >
       <span
@@ -25,6 +26,6 @@ export function LoadingState() {
         aria-hidden="true"
       />
       <span>Waiting {seconds}s</span>
-    </div>
+    </output>
   );
 }
